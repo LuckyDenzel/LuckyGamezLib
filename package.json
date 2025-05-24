@@ -1,0 +1,10 @@
+{
+  "name": "com.luckygamez.lib",
+  "version": "1.0.0",
+  "displayName": "LuckyGamezLib",
+  "description": "A modular and reusable Unity library made by LuckyGamez.",
+  "author": {
+    "name": "LuckyGamez",
+    "url": "https://github.com/LuckyDenzel"
+  }
+}
