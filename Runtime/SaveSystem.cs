@@ -17,7 +17,7 @@ namespace LuckyGamezLib {
         public static T LoadSavedDataFromFile<T>(string fileName) {
             string path = GetPath(fileName);
 
-            if (File.Exists(GetPath(path))) {
+            if (File.Exists(path)) {
                 string json = File.ReadAllText(path);
 
                 return JsonUtility.FromJson<T>(json);
