@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
 namespace LuckyGamezLib {
     public static class CentralObjectPooler {
 

@@ -6,5 +6,12 @@
   "author": {
     "name": "LuckyGamez",
     "url": "https://github.com/LuckyDenzel"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Basic Usage Sample",
+      "description": "Shows how to use the core features of LuckyGamezLib.",
+      "path": "Samples~/Features"
+    }
+  ]
 }

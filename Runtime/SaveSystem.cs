@@ -6,7 +6,7 @@ namespace LuckyGamezLib {
     public static class SaveSystem {
 
         // Save the data you want to save in a file
-        public static void Save<T>(T data, string fileName) {
+        public static void SaveDataToFile<T>(T data, string fileName) {
             string json = JsonUtility.ToJson(data);
             string path = GetPath(fileName);
 
