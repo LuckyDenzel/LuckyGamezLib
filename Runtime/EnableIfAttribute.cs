@@ -21,22 +21,33 @@ namespace LuckyGamezLib {
     public class EnableIfAttributeDrawer : PropertyDrawer {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
             EnableIfAttribute enableIfAttribute = (EnableIfAttribute)attribute;
-            SerializedProperty boolProp = property.serializedObject.FindProperty(enableIfAttribute.boolName);
-
             bool enabled = true;
 
-            if (boolProp != null && boolProp.propertyType == SerializedPropertyType.Boolean) { 
+            // Try to find the property first
+            SerializedProperty boolProp = property.serializedObject.FindProperty(enableIfAttribute.boolName);
+
+            if (boolProp != null && boolProp.propertyType == SerializedPropertyType.Boolean) {
                 enabled = boolProp.boolValue;
-            } else {
-                Debug.LogWarning("Can't find the bool you referenced in the EnableIf attribute!");
+            }
+            else {
+                // Try method fallback
+                var target = property.serializedObject.targetObject;
+                var method = target.GetType().GetMethod(enableIfAttribute.boolName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+                if (method != null && method.ReturnType == typeof(bool) && method.GetParameters().Length == 0) {
+                    enabled = (bool)method.Invoke(target, null);
+                }
+                else {
+                    Debug.LogWarning($"EnableIf: Can't find boolean field or method named '{enableIfAttribute.boolName}' on {target}");
+                }
             }
 
-            bool previousGuiState = GUI.enabled;
+            bool previousGUIState = GUI.enabled;
             GUI.enabled = enabled;
 
             EditorGUI.PropertyField(position, property, label, true);
 
-            GUI.enabled = previousGuiState;
+            GUI.enabled = previousGUIState;
         }
     }
 

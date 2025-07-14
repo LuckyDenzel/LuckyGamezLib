@@ -1,11 +1,13 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LuckyGamezLib {
-    public static class CentralObjectPooler {
+    public class CentralObjectPooler : MonoBehaviour {
 
 
-        private static Dictionary<string, Queue<GameObject>> objectPoolsDictionary = new Dictionary<string, Queue<GameObject>>();
+        private Dictionary<string, Queue<GameObject>> objectPoolsDictionary = new Dictionary<string, Queue<GameObject>>();
 
 
         /// <summary>
@@ -13,7 +15,7 @@ namespace LuckyGamezLib {
         /// </summary>
         /// <param name="poolId">The id of the pool you want to use</param>
         /// <param name="objectsToPool"></param>
-        public static void CreateNewPool(string poolId, GameObject[] objectsToPool) {
+        public void CreateNewPool(string poolId, GameObject[] objectsToPool) {
             if (objectPoolsDictionary.ContainsKey(poolId)) {
                 // Return if the poolDictionary already has this pool
                 Debug.LogWarning("There's already a object pool with this id! poolId: " + poolId);
@@ -26,6 +28,9 @@ namespace LuckyGamezLib {
             foreach (GameObject obj in objectsToPool) {
                 // Enqueue the object to later use
                 objectPoolQueue.Enqueue(obj);
+
+                // Instantiate the specified object
+                Object.Instantiate(obj, Vector3.zero, Quaternion.identity);
 
                 // Set the object inactive so that it isn't visible in-game
                 obj.SetActive(false);
@@ -40,7 +45,7 @@ namespace LuckyGamezLib {
         /// </summary>
         /// <param name="poolId">The id of the pool you want to use</param>
         /// <param name="objectsToAdd"></param>
-        public static void AddObjectsToPool(string poolId, GameObject[] objectsToAdd) {
+        public void AddObjectsToPool(string poolId, GameObject[] objectsToAdd) {
             if (!objectPoolsDictionary.ContainsKey(poolId)) {
                 // Return if the dictionary with this id doesn't yet exist
                 Debug.LogWarning("You're trying to add objects to a pool which doesn't exist! Pool id: " + poolId);
@@ -65,7 +70,7 @@ namespace LuckyGamezLib {
         /// <param name="poolId">The id of the pool you want to use</param>
         /// <param name="positionToUse"></param>
         /// <param name="rotationToUse"></param>
-        public static GameObject UseObjectFromPool(string poolId, Vector3 positionToUse, Quaternion rotationToUse) {
+        public GameObject UseObjectFromPool(string poolId, Vector3 positionToUse, Quaternion rotationToUse) {
             if (!objectPoolsDictionary.ContainsKey(poolId)) {
                 // Return if the pool dictionary doens't have a pool with the given id
                 Debug.LogWarning("You're trying to get and use an object from a pool which doesn't exist Pool id: " + poolId);
@@ -98,7 +103,7 @@ namespace LuckyGamezLib {
         /// </summary>
         /// <param name="poolId">The id of the pool you want to use</param>
         /// <param name="gameObjectToReturn">The copy of the object you want to return</param>
-        public static void ReturnObjectToPool(string poolId, GameObject gameObjectToReturn) {
+        public void ReturnObjectToPool(string poolId, GameObject gameObjectToReturn) {
             if (!objectPoolsDictionary.ContainsKey(poolId)) {
                 // Return if the pool dictionary doen't have a pool with the given id
                 Debug.LogWarning("You're trying to add an object back to a non existing pool! Pool id: " + poolId);
@@ -120,7 +125,7 @@ namespace LuckyGamezLib {
         /// </summary>
         /// <param name="poolId">The id of the pool you want to use</param>
         /// <param name="amountToRemove">The amount of objects you want to remove from this pool type</param>
-        public static void RemoveObjectsFromPool(string poolId, int amountToRemove) {
+        public void RemoveObjectsFromPool(string poolId, int amountToRemove) {
             if (!objectPoolsDictionary.ContainsKey(poolId)) {
                 // Return if the pool doesn't exist with the given id
                 Debug.LogWarning("The pool you're trying to remove objects from doesn't exist with the given key! Given key: " + poolId);
@@ -154,11 +159,11 @@ namespace LuckyGamezLib {
             // No need for re-adding the queue to the dictionary because we're getting a copy
         }
 
-        public static bool DoesObjectPoolExist(string poolId) {
+        public bool DoesObjectPoolExist(string poolId) {
             return objectPoolsDictionary.ContainsKey(poolId);
         }
 
-        public static int GetObjectPoolCountFromId(string poolId) {
+        public int GetObjectPoolCountFromId(string poolId) {
             Queue<GameObject> objectPoolQueue = objectPoolsDictionary[poolId];
 
             if (objectPoolQueue.Count == 0) {
@@ -168,7 +173,11 @@ namespace LuckyGamezLib {
             return objectPoolQueue.Count;
         }
 
-        public static void DestroyObjectPool(string poolId) {
+        /// <summary>
+        /// This is only recomended if the the objects take up too much memory. In a lot of cases, destroying the objects is less performant than leaving them. So use this with caution!
+        /// </summary>
+        /// <param name="poolId">The id of the pool you want to use</param>
+        public void DestroyObjectPool(string poolId) {
             if (!objectPoolsDictionary.ContainsKey(poolId)) {
                 // Return if the pool doesn't exist
                 Debug.LogWarning("The pool you're tyring to acces and delete doesn't exist");
@@ -178,13 +187,36 @@ namespace LuckyGamezLib {
 
             Queue<GameObject> objectPoolQueue = objectPoolsDictionary[poolId];
 
+            // Start to slowly destory all the objects
+            StartCoroutine(SlowlyDestroyObjects(objectPoolQueue.ToArray(), 10));
+
             for (int i = objectPoolQueue.Count - 1; i >= 0; i--) {
                 GameObject dequeuedObject = objectPoolQueue.Dequeue();
-
-                UnityEngine.Object.Destroy(dequeuedObject);
             }
 
             objectPoolsDictionary.Remove(poolId);
+        }
+
+        /// <summary>
+        /// Slowly destroys objects in an array one by one. This reduces performance bottlenecks.
+        /// </summary>
+        /// <param name="objectsArray">The array of objects you want to destory</param>
+        /// <param name="frameDelayPer5Objects">The delay you want to wait after every 5 destroyed objects</param>
+        /// <returns></returns>
+        public IEnumerator SlowlyDestroyObjects(GameObject[] objectsArray, int frameDelayPer5Objects) {
+            int count = 0;
+
+            for (int i = objectsArray.Length - 1; i >= 0; i--) {
+                Object.Destroy(objectsArray[i]);
+                count++;
+
+                // Every 5 objects wait the amount of frames specified in the parameters
+                if (count % 5 == 0) {
+                    for (int t = 0; t < frameDelayPer5Objects; t++) {
+                        yield return null;
+                    }
+                }
+            }
         }
     }
 }
